@@ -64,6 +64,12 @@ class Company {
    * */
 
   static async findFiltered({ minEmployees, maxEmployees, nameLike }) {
+    if (minEmployees > maxEmployees) {
+      throw new BadRequestError(
+        "minEmployees cannot be greater than maxEmployees"
+      );
+    }
+
     let query = `SELECT handle,
                       name,
                       description,

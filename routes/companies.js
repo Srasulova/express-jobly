@@ -14,7 +14,6 @@ const companyUpdateSchema = require("../schemas/companyUpdate.json");
 
 const router = new express.Router();
 
-
 /** POST / { company } =>  { company }
  *
  * company should be { handle, name, description, numEmployees, logoUrl }
@@ -28,7 +27,7 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, companyNewSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -50,12 +49,43 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
  * Authorization required: none
  */
 
-router.get("/", async function (req, res, next) {
+// router.get("/", async function (req, res, next) {
+//   try {
+//     const companies = await Company.findAll();
+//     return res.json({ companies });
+//   } catch (err) {
+//     return next(err);
+//   }
+// });
+
+router.get("/", async (req, res, next) => {
   try {
-    const companies = await Company.findAll();
+    const { minEmployees, maxEmployees, nameLike, ...rest } = req.query;
+
+    // Ensure no unexpected query parameters are present
+    if (Object.keys(rest).length > 0) {
+      throw new BadRequestError("Invalid filter query");
+    }
+
+    // Ensure minEmployees <= maxEmployees
+    if (
+      (minEmployees && isNaN(parseInt(minEmployees))) ||
+      (maxEmployees && isNaN(parseInt(maxEmployees))) ||
+      (minEmployees &&
+        maxEmployees &&
+        parseInt(minEmployees) > parseInt(maxEmployees))
+    ) {
+      throw new BadRequestError("Invalid filter query");
+    }
+
+    const companies = await Company.findFiltered({
+      minEmployees,
+      maxEmployees,
+      nameLike,
+    });
     return res.json({ companies });
-  } catch (err) {
-    return next(err);
+  } catch (error) {
+    return next(error);
   }
 });
 
@@ -91,7 +121,7 @@ router.patch("/:handle", ensureLoggedIn, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, companyUpdateSchema);
     if (!validator.valid) {
-      const errs = validator.errors.map(e => e.stack);
+      const errs = validator.errors.map((e) => e.stack);
       throw new BadRequestError(errs);
     }
 
@@ -115,6 +145,5 @@ router.delete("/:handle", ensureLoggedIn, async function (req, res, next) {
     return next(err);
   }
 });
-
 
 module.exports = router;
