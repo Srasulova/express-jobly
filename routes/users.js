@@ -30,7 +30,7 @@ const router = express.Router();
  * Authorization required: login and admin
  **/
 
-router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
+router.post("/", ensureAdmin, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, userNewSchema);
     if (!validator.valid) {
@@ -55,7 +55,6 @@ router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
 
 router.post(
   "/:username/jobs/:id",
-  ensureLoggedIn,
   ensureIsAdminOrOwner,
   async function (req, res, next) {
     try {
@@ -75,10 +74,10 @@ router.post(
  *
  * Returns list of all users.
  *
- * Authorization required: login and admin
+ * Authorization required: admin
  **/
 
-router.get("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
+router.get("/", ensureAdmin, async function (req, res, next) {
   try {
     const users = await User.findAll();
     return res.json({ users });
@@ -94,19 +93,14 @@ router.get("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
  * Authorization required: login, admin or owner
  **/
 
-router.get(
-  "/:username",
-  ensureLoggedIn,
-  ensureIsAdminOrOwner,
-  async function (req, res, next) {
-    try {
-      const user = await User.get(req.params.username);
-      return res.json({ user });
-    } catch (err) {
-      return next(err);
-    }
+router.get("/:username", ensureIsAdminOrOwner, async function (req, res, next) {
+  try {
+    const user = await User.get(req.params.username);
+    return res.json({ user });
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 /** PATCH /[username] { user } => { user }
  *
@@ -120,7 +114,6 @@ router.get(
 
 router.patch(
   "/:username",
-  ensureLoggedIn,
   ensureIsAdminOrOwner,
   async function (req, res, next) {
     try {
@@ -145,7 +138,6 @@ router.patch(
 
 router.delete(
   "/:username",
-  ensureLoggedIn,
   ensureIsAdminOrOwner,
   async function (req, res, next) {
     try {

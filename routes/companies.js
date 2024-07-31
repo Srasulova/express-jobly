@@ -23,7 +23,7 @@ const router = new express.Router();
  * Authorization required: login and admin
  */
 
-router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
+router.post("/", ensureAdmin, async function (req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, companyNewSchema);
     if (!validator.valid) {
@@ -51,12 +51,7 @@ router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
 
 router.get("/", async (req, res, next) => {
   try {
-    const { minEmployees, maxEmployees, nameLike, ...rest } = req.query;
-
-    // Ensure no unexpected query parameters are present
-    if (Object.keys(rest).length > 0) {
-      throw new BadRequestError("Invalid filter query");
-    }
+    const { minEmployees, maxEmployees, name } = req.query;
 
     // Ensure minEmployees <= maxEmployees
     if (
@@ -69,10 +64,10 @@ router.get("/", async (req, res, next) => {
       throw new BadRequestError("Invalid filter query");
     }
 
-    const companies = await Company.findFiltered({
+    const companies = await Company.filter({
       minEmployees,
       maxEmployees,
-      nameLike,
+      name,
     });
     return res.json({ companies });
   } catch (error) {
@@ -108,63 +103,33 @@ router.get("/:handle", async function (req, res, next) {
  * Authorization required: login and admin
  */
 
-router.patch(
-  "/:handle",
-  ensureLoggedIn,
-  ensureAdmin,
-  async function (req, res, next) {
-    try {
-      const validator = jsonschema.validate(req.body, companyUpdateSchema);
-      if (!validator.valid) {
-        const errs = validator.errors.map((e) => e.stack);
-        throw new BadRequestError(errs);
-      }
-
-      const company = await Company.update(req.params.handle, req.body);
-      return res.json({ company });
-    } catch (err) {
-      return next(err);
+router.patch("/:handle", ensureAdmin, async function (req, res, next) {
+  try {
+    const validator = jsonschema.validate(req.body, companyUpdateSchema);
+    if (!validator.valid) {
+      const errs = validator.errors.map((e) => e.stack);
+      throw new BadRequestError(errs);
     }
+
+    const company = await Company.update(req.params.handle, req.body);
+    return res.json({ company });
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 /** DELETE /[handle]  =>  { deleted: handle }
  *
  * Authorization: login and admin
  */
 
-router.delete(
-  "/:handle",
-  ensureLoggedIn,
-  ensureAdmin,
-  async function (req, res, next) {
-    try {
-      await Company.remove(req.params.handle);
-      return res.json({ deleted: req.params.handle });
-    } catch (err) {
-      return next(err);
-    }
+router.delete("/:handle", ensureAdmin, async function (req, res, next) {
+  try {
+    await Company.remove(req.params.handle);
+    return res.json({ deleted: req.params.handle });
+  } catch (err) {
+    return next(err);
   }
-);
+});
 
 module.exports = router;
-
-/** GET /  =>
- *   { companies: [ { handle, name, description, numEmployees, logoUrl }, ...] }
- *
- * Can filter on provided search filters:
- * - minEmployees
- * - maxEmployees
- * - nameLike (will find case-insensitive, partial matches)
- *
- * Authorization required: none
- */
-
-// router.get("/", async function (req, res, next) {
-//   try {
-//     const companies = await Company.findAll();
-//     return res.json({ companies });
-//   } catch (err) {
-//     return next(err);
-//   }
-// });

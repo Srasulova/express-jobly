@@ -63,7 +63,7 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findFiltered({ minEmployees, maxEmployees, nameLike }) {
+  static async filter({ minEmployees, maxEmployees, name }) {
     if (minEmployees > maxEmployees) {
       throw new BadRequestError(
         "minEmployees cannot be greater than maxEmployees"
@@ -91,8 +91,8 @@ class Company {
       whereExpressions.push(`num_employees <= $${queryValues.length}`);
     }
 
-    if (nameLike) {
-      queryValues.push(`%${nameLike}%`);
+    if (name) {
+      queryValues.push(`%${name}%`);
       whereExpressions.push(`name ILIKE $${queryValues.length}`);
     }
 

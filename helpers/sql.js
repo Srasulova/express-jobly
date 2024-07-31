@@ -8,14 +8,13 @@ const { BadRequestError } = require("../expressError");
  * array of values to be updated.
  *
  * Example:
- *   const dataToUpdate = { firstName: 'Aliya', age: 32 };
- *   const jsToSql = { firstName: 'first_name' };
- *   const result = sqlForPartialUpdate(dataToUpdate, jsToSql);
- *   // result:
- *   // {
- *   //   setCols: '"first_name"=$1, "age"=$2',
- *   //   values: ['Aliya', 32]
- *   // }
+ *  dataToUpdate input: { firstName: 'Aliya', age: 32 };
+ *  jsToSql input: { firstName: 'first_name' };
+ *   output:
+ *   {
+ *   setCols: '"first_name"=$1, "age"=$2',
+ *   values: ['Aliya', 32]
+ *   }
  **/
 
 function sqlForPartialUpdate(dataToUpdate, jsToSql) {
