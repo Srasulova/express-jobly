@@ -46,7 +46,7 @@ describe("POST /companies", function () {
     const resp = await request(app)
       .post("/companies")
       .send(newCompany)
-      .set("authorizaton", `Bearer ${userToken}`);
+      .set("authorization", `Bearer ${userToken}`);
 
     expect(resp.statusCode).toEqual(403);
   });
@@ -282,7 +282,7 @@ describe("GET /companies", function () {
 
     const resp = await request(app)
       .get("/companies")
-      .set("authorization", `Bearer ${u1Token}`);
+      .set("authorization", `Bearer ${adminToken}`);
 
     expect(resp.statusCode).toEqual(500);
   });

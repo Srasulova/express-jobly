@@ -21,7 +21,7 @@ function authenticateJWT(req, res, next) {
       const token = authHeader.replace(/^[Bb]earer /, "").trim();
       res.locals.user = jwt.verify(token, SECRET_KEY);
     } else {
-      res.locals.user = null; //No token provided
+      res.locals.user = null; //No token provided, set res.locals to an empty object
     }
     return next();
   } catch (err) {
@@ -48,13 +48,19 @@ function ensureLoggedIn(req, res, next) {
 
 function ensureAdmin(req, res, next) {
   try {
-    if (!res.locals.user || !res.locals.isAdmin) {
+    // Check if user is authenticated
+    if (!res.locals.user) {
+      throw new ForbiddenError("You must be logged in to perform this action.");
+    }
+
+    // Check if user is an admin
+    if (res.locals.user.isAdmin) {
+      return next();
+    } else {
       throw new ForbiddenError(
         "You do not have permission to perform this action."
       );
     }
-
-    return next();
   } catch (error) {
     return next(error);
   }
@@ -65,6 +71,11 @@ function ensureAdmin(req, res, next) {
 
 function ensureIsAdminOrOwner(req, res, next) {
   try {
+    // Check if user is authenticated
+    if (!res.locals.user) {
+      throw new ForbiddenError("You must be logged in to perform this action.");
+    }
+
     const userIdFromToken = res.locals.user.username;
     const resourceId = req.params.username || req.query.username;
 
