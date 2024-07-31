@@ -27,12 +27,15 @@ class Job {
     if (duplicateCheck.rows[0])
       throw new BadRequestError(`Duplicate job: ${title} at ${company_handle}`);
 
+    // Convert equity to number to ensure it's inserted correctly
+    const numericEquity = Number(equity);
+
     const result = await db.query(
       `INSERT INTO jobs
            (title, salary, equity, company_handle)
            VALUES ($1, $2, $3, $4)
            RETURNING id, title, salary, equity, company_handle AS "companyHandle"`,
-      [title, salary, equity, company_handle]
+      [title, salary, numericEquity, company_handle]
     );
     const job = result.rows[0];
 
@@ -63,7 +66,16 @@ class Job {
    * Returns [{ id, title, salary, equity, companyHandle }, ...]
    * */
 
-  static async findFiltered({ title, minSalary, hasEquity }) {
+  static async findFiltered({ title, minSalary, maxSalary, hasEquity }) {
+    // Check if minSalary is greater than maxSalary and throw an error
+    if (
+      minSalary !== undefined &&
+      maxSalary !== undefined &&
+      minSalary > maxSalary
+    ) {
+      throw new BadRequestError("minSalary cannot be greater than maxSalary");
+    }
+
     let query = `SELECT id,
                         title,
                         salary,
@@ -81,6 +93,11 @@ class Job {
     if (minSalary !== undefined) {
       queryValues.push(minSalary);
       whereExpressions.push(`salary >= $${queryValues.length}`);
+    }
+
+    if (maxSalary !== undefined) {
+      queryValues.push(maxSalary);
+      whereExpressions.push(`salary <= $${queryValues.length}`);
     }
 
     if (hasEquity === true) {
@@ -150,10 +167,17 @@ class Job {
                                 salary, 
                                 equity, 
                                 company_handle AS "companyHandle"`;
+
+    console.log("Query SQL:", querySql);
+    console.log("Values:", [...values, id]);
+
     const result = await db.query(querySql, [...values, id]);
     const job = result.rows[0];
 
     if (!job) throw new NotFoundError(`No job: ${id}`);
+
+    // Convert equity to number to ensure consistency
+    job.equity = Number(job.equity);
 
     return job;
   }
