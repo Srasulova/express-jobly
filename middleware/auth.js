@@ -4,8 +4,7 @@
 
 const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = require("../config");
-const { UnauthorizedError } = require("../expressError");
-
+const { UnauthorizedError, ForbiddenError } = require("../expressError");
 
 /** Middleware: Authenticate user.
  *
@@ -21,6 +20,8 @@ function authenticateJWT(req, res, next) {
     if (authHeader) {
       const token = authHeader.replace(/^[Bb]earer /, "").trim();
       res.locals.user = jwt.verify(token, SECRET_KEY);
+    } else {
+      res.locals.user = null; //No token provided
     }
     return next();
   } catch (err) {
@@ -42,8 +43,46 @@ function ensureLoggedIn(req, res, next) {
   }
 }
 
+// Middleware to check if the user is admin.
+// If not raises Forbidden.
+
+function ensureAdmin(req, res, next) {
+  try {
+    if (!res.locals.user || !res.locals.isAdmin) {
+      throw new ForbiddenError(
+        "You do not have permission to perform this action."
+      );
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// Middleware to check if the user is the owner of the resource or an admin
+// Checks if the user ID from the token matches the resource ID or of the user is admin
+
+function ensureIsAdminOrOwner(req, res, next) {
+  try {
+    const userIdFromToken = res.locals.user.username;
+    const resourceId = req.params.username || req.query.username;
+
+    if (res.locals.user.isAdmin || userIdFromToken === resourceId) {
+      return next();
+    } else {
+      throw new ForbiddenError(
+        "You do not have permission to perform this action."
+      );
+    }
+  } catch (error) {
+    return next(error);
+  }
+}
 
 module.exports = {
   authenticateJWT,
   ensureLoggedIn,
+  ensureAdmin,
+  ensureIsAdminOrOwner,
 };
